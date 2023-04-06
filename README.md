@@ -5,7 +5,7 @@
 [![paper](https://img.shields.io/badge/arXiv-Paper-<COLOR>.svg)](https://arxiv.org/pdf/2304.01194.pdf)
 
 #### News
-- **Feb 27, 2023:** Paper accepted at CVPR 2022 :tada: 
+- **Feb 27, 2023:** Paper accepted at CVPR 2023 :tada: 
 
 <hr />
 
