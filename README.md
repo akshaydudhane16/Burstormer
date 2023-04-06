@@ -16,7 +16,7 @@ transformer-based architecture for burst image restoration and enhancement. In c
 
 ## Network Architecture
 
-<img src = 'block_diagram.pdf'> 
+<img src = 'block_diagram.png'> 
 
 ## Installation
 
