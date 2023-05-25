@@ -34,7 +34,18 @@ If you use Burstormer, please consider citing:
               journal={arXiv preprint arXiv:2304.01194},
               year={2023}
             }
+            
+Also, check our CVPR-22 paper: Burst Image Restoration and Enhancement
 
+Code is available [here](https://github.com/akshaydudhane16/BIPNet)
+    
+    @inproceedings{dudhane2022burst,
+                    title={Burst image restoration and enhancement},
+                    author={Dudhane, Akshay and Zamir, Syed Waqas and Khan, Salman and Khan, Fahad Shahbaz and Yang, Ming-Hsuan},
+                    booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+                    pages={5759--5768},
+                    year={2022}
+                  }
 
 ## Contact
 Should you have any question, please contact akshay.dudhane@mbzuai.ac.ae
