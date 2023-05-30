@@ -146,9 +146,9 @@ class Attention(pl.LightningModule):
 
 
 ##########################################################################
-class TransformerBlock(pl.LightningModule):
+class BFA(pl.LightningModule):
     def __init__(self, dim, num_heads, stride, ffn_expansion_factor, bias, LayerNorm_type):
-        super(TransformerBlock, self).__init__()
+        super(BFA, self).__init__()
 
         self.norm1 = LayerNorm(dim, LayerNorm_type)
         self.attn = Attention(dim, num_heads, stride, bias)
@@ -227,9 +227,9 @@ class alignment(pl.LightningModule):
         return aligned_feat, offset_feat
 
 
-class EDVR(pl.LightningModule):
+class EDA(pl.LightningModule):
     def __init__(self, in_channels=64):
-        super(EDVR, self).__init__()
+        super(EDA, self).__init__()
         
         num_blocks = [4,6,6,8] 
         num_refinement_blocks = 4
@@ -237,8 +237,8 @@ class EDVR(pl.LightningModule):
         bias = False
         LayerNorm_type = 'WithBias'
 
-        self.encoder_level1 = nn.Sequential(*[TransformerBlock(dim=in_channels, num_heads=heads[0], stride=1, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(2)])
-        self.encoder_level2 = nn.Sequential(*[TransformerBlock(dim=in_channels, num_heads=heads[1], stride=1, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(2)])
+        self.encoder_level1 = nn.Sequential(*[BFA(dim=in_channels, num_heads=heads[0], stride=1, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(2)])
+        self.encoder_level2 = nn.Sequential(*[BFA(dim=in_channels, num_heads=heads[1], stride=1, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(2)])
                 
         self.down1 = nn.Conv2d(in_channels, in_channels, 3, stride=2, padding=1)        
         self.down2 = nn.Conv2d(in_channels, in_channels, 3, stride=2, padding=1)
@@ -283,7 +283,7 @@ class ref_back_projection(pl.LightningModule):
 
         bias = False
         self.feat_fusion = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1), nn.GELU())
-        self.encoder1 = nn.Sequential(*[TransformerBlock(dim=in_channels*2, num_heads=1, stride=stride, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type='WithBias') for i in range(2)])
+        self.encoder1 = nn.Sequential(*[BFA(dim=in_channels*2, num_heads=1, stride=stride, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type='WithBias') for i in range(2)])
         
         self.feat_expand = nn.Sequential(nn.Conv2d(in_channels, in_channels*2, 3, stride=1, padding=1), nn.GELU())
         self.diff_fusion = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1), nn.GELU())
@@ -317,7 +317,7 @@ class no_ref_back_projection(pl.LightningModule):
         self.feat_expand = nn.Conv2d(in_channels, in_channels*2, 3, stride=1, padding=1, bias = False)
         self.diff_fusion = nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1, bias = False)
         
-        self.encoder1 = nn.Sequential(*[TransformerBlock(dim=in_channels*2, num_heads=1, stride=stride, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type='WithBias') for i in range(2)])
+        self.encoder1 = nn.Sequential(*[BFA(dim=in_channels*2, num_heads=1, stride=stride, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type='WithBias') for i in range(2)])
 
     def burst_fusion(self, x):
         b, f, H, W = x.size()
@@ -375,7 +375,7 @@ class Base_Model(pl.LightningModule):
         bias = False
         
         self.conv1 = nn.Sequential(nn.Conv2d(4, num_features, kernel_size=3, padding=1, bias=bias))
-        self.align = EDVR(num_features)
+        self.align = EDA(num_features)
 
         self.back_projection1 = no_ref_back_projection(num_features, stride=1)
         self.back_projection2 = no_ref_back_projection(num_features, stride=1)
@@ -418,6 +418,8 @@ class Base_Model(pl.LightningModule):
 
         burst_feat = self.up3(burst_feat) 
         burst_feat = self.out_conv(burst_feat)
+
+        output = torchvision.transforms.functional.adjust_sharpness(output, sharpness_factor=10)
         
         return burst_feat
 
