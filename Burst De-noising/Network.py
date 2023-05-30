@@ -13,10 +13,6 @@ from einops import rearrange
 import numbers
 
 
-
-from utils.metrics import PSNR
-psnr_fn = PSNR(boundary_ignore=40)
-
 seed_everything(13)
 
 
@@ -101,6 +97,7 @@ class FeedForward(pl.LightningModule):
         return x
 
 
+
 ##########################################################################
 ## Multi-DConv Head Transposed Self-Attention (MDTA)
 class Attention(pl.LightningModule):
@@ -149,6 +146,7 @@ class Attention(pl.LightningModule):
 ##########################################################################
 ######### Burst Feature Attention ########################################
 
+##########################################################################
 class BFA(pl.LightningModule):
     def __init__(self, dim, num_heads, stride, ffn_expansion_factor, bias, LayerNorm_type):
         super(BFA, self).__init__()
@@ -179,10 +177,10 @@ class OverlapPatchEmbed(pl.LightningModule):
 
         return x
 
-class feature_alignment(pl.LightningModule):
-    def __init__(self, dim=64, memory=False, stride=1, type='group_conv'):
+class alignment(pl.LightningModule):
+    def __init__(self, dim=48, memory=False, stride=1, type='group_conv'):
         
-        super(feature_alignment, self).__init__()
+        super(alignment, self).__init__()
         
         act = nn.GELU()
         bias = False
@@ -230,26 +228,30 @@ class feature_alignment(pl.LightningModule):
         return aligned_feat, offset_feat
 
 
+
 ########################################################################################################
 ######### Enhanced Deformable Alignment ################################################################
 
 class EDA(pl.LightningModule):
-    def __init__(self, in_channels=64):
+    def __init__(self, in_channels=48):
         super(EDA, self).__init__()
         
+        num_blocks = [4,6,6,8] 
+        num_refinement_blocks = 4
+        heads = [1,2,4,8]
         bias = False
         LayerNorm_type = 'WithBias'
 
-        self.encoder_level1 = nn.Sequential(*[BFA(dim=in_channels, num_heads=1, stride=1, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(2)])
-        self.encoder_level2 = nn.Sequential(*[BFA(dim=in_channels, num_heads=2, stride=1, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(2)])
+        self.encoder_level1 = nn.Sequential(*[BFA(dim=in_channels, num_heads=heads[0], stride=1, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(2)])
+        self.encoder_level2 = nn.Sequential(*[BFA(dim=in_channels, num_heads=heads[1], stride=1, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type=LayerNorm_type) for i in range(2)])
                 
         self.down1 = nn.Conv2d(in_channels, in_channels, 3, stride=2, padding=1)        
         self.down2 = nn.Conv2d(in_channels, in_channels, 3, stride=2, padding=1)
 
-        self.alignment0 = feature_alignment(in_channels, memory=True)
-        self.alignment1 = feature_alignment(in_channels, memory=True)
-        self.alignment2 = feature_alignment(in_channels)
-        self.cascade_alignment = feature_alignment(in_channels, memory=True)
+        self.alignment0 = alignment(in_channels, memory=True)
+        self.alignment1 = alignment(in_channels, memory=True)
+        self.alignment2 = alignment(in_channels)
+        self.cascade_alignment = alignment(in_channels, memory=True)
 
         self.offset_up1 = nn.ConvTranspose2d(in_channels, in_channels, 3, stride=2, padding=1, output_padding=1)
         self.offset_up2 = nn.ConvTranspose2d(in_channels, in_channels, 3, stride=2, padding=1, output_padding=1)
@@ -285,20 +287,20 @@ class ref_back_projection(pl.LightningModule):
         super(ref_back_projection, self).__init__()
 
         bias = False
-        self.feat_fusion = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1), nn.GELU())
-        self.encoder1 = nn.Sequential(*[BFA(dim=in_channels, num_heads=1, stride=stride, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type='WithBias') for i in range(2)])
         
+        self.feat_fusion = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1), nn.GELU())        
         self.feat_expand = nn.Sequential(nn.Conv2d(in_channels, in_channels*2, 3, stride=1, padding=1), nn.GELU())
         self.diff_fusion = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1), nn.GELU())
+
+        self.encoder1 = nn.Sequential(*[BFA(dim=in_channels*2, num_heads=1, stride=stride, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type='WithBias') for i in range(2)])
         
     def forward(self, x):
         
         B, f, H, W = x.size()
-        feat = self.encoder1(x)
 
-        ref = feat[0].unsqueeze(0)
+        ref = x[0].unsqueeze(0)
         ref = torch.repeat_interleave(ref, B, dim=0)
-        feat = torch.cat([ref, feat], dim=1)  
+        feat = self.encoder1(torch.cat([ref, x], dim=1))
 
         fused_feat = self.feat_fusion(feat)
         exp_feat = self.feat_expand(fused_feat)
@@ -316,21 +318,33 @@ class no_ref_back_projection(pl.LightningModule):
         super(no_ref_back_projection, self).__init__()
 
         bias = False
-        self.feat_fusion = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1), nn.GELU())
+        
+        self.feat_fusion = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1), nn.GELU())        
         self.feat_expand = nn.Sequential(nn.Conv2d(in_channels, in_channels*2, 3, stride=1, padding=1), nn.GELU())
-
+        self.diff_fusion = nn.Sequential(nn.Conv2d(in_channels*2, in_channels, 3, stride=1, padding=1), nn.GELU())
+        
         self.encoder1 = nn.Sequential(*[BFA(dim=in_channels*2, num_heads=1, stride=stride, ffn_expansion_factor=2.66, bias=bias, LayerNorm_type='WithBias') for i in range(2)])
-        
-    def forward(self, x):
 
+    def burst_fusion(self, x):
         b, f, H, W = x.size()
-        feat = self.encoder1(x.view(-1, f*2, H, W))
-        rec_feat = self.feat_expand(self.feat_fusion(feat))
+        x = x.view(-1, f*2, H, W)
+        return x
 
-        residual = feat - rec_feat
-        feat = feat + residual
+    def forward(self, x):
         
-        return feat
+        B, f, H, W = x.size()
+        shifted_x = torch.roll(x, 1, 0)
+        feat = x.view(-1, f*2, H, W)
+        shifted_feat = shifted_x.view(-1, f*2, H, W)
+        feat = self.encoder1(torch.cat([feat, shifted_feat], dim=0))
+
+        fused_feat = self.feat_fusion(feat)
+        rec_feat = self.feat_expand(fused_feat)
+
+        residual = self.diff_fusion(feat - rec_feat)
+        fused_feat = fused_feat + residual
+        
+        return fused_feat
 
 
 class adapt_burst_pooling(pl.LightningModule):
@@ -352,14 +366,13 @@ class adapt_burst_pooling(pl.LightningModule):
         x = x.view(-1, f, H, W)
         x = torch.cat([x_ref, x], dim=0)
 
-        return x###############################################################################
+        return x
+
+import torchvision.models as models
 
 class Burstormer(pl.LightningModule):
-    def __init__(self, mode='color', num_features=64, burst_size=8, reduction=8, bias=False):
-        super(Burstormer, self).__init__()        
-
-        self.train_loss = nn.L1Loss()
-        self.valid_psnr = PSNR(boundary_ignore=40)
+    def __init__(self, mode='color', num_features=48, burst_size=8, reduction=8, bias=False):
+        super(Burstormer, self).__init__()
 
         if mode=="color":            
             inp_chn = 6
@@ -369,53 +382,38 @@ class Burstormer(pl.LightningModule):
             out_chn = 1
 
         self.conv1 = nn.Sequential(nn.Conv2d(inp_chn, num_features, kernel_size=3, padding=1, bias=bias))
+        self.align = EDA(num_features)
 
         self.back_projection1 = no_ref_back_projection(num_features, stride=1)
         self.back_projection2 = no_ref_back_projection(num_features, stride=1)
 
-        self.up1 = nn.Sequential(nn.Conv2d(num_features*8, num_features*8, kernel_size=1, stride=1, padding=0, bias=False),
-                                  nn.PixelShuffle(2), nn.GELU())
+        self.rec_conv1 = nn.Sequential(nn.Conv2d(num_features*8, num_features*2, kernel_size=1, stride=1, padding=0, bias=False), nn.GELU())
 
-        self.up2 = nn.Sequential(nn.Conv2d(num_features*2, num_features*4, kernel_size=1, stride=1, padding=0, bias=False),
-                                  nn.PixelShuffle(2), nn.GELU())
+        self.rec_conv2 = nn.Sequential(nn.Conv2d(num_features*2, num_features, kernel_size=1, stride=1, padding=0, bias=False), nn.GELU())
 
-        self.up3 = nn.Sequential(nn.Conv2d(num_features, num_features*4, kernel_size=1, stride=1, padding=0, bias=False),
-                                  nn.PixelShuffle(2), nn.GELU())
-        
-        self.out_conv = nn.Sequential(nn.Conv2d(num_features, 3, kernel_size=3, padding=1, bias=bias)) 
-
-        self.adapt_brust_pool = adapt_burst_pooling(num_features, 8)      
+        self.out_conv = nn.Sequential(nn.Conv2d(num_features, out_chn, kernel_size=3, padding=1, bias=bias)) 
            
     def forward(self, burst):
-        
+            
         burst = burst[0]
         burst_feat = self.conv1(burst)
 
         burst_feat = self.align(burst_feat)
-        
-        burst_feat = self.adapt_brust_pool(burst_feat)
         
         b, f, H, W = burst_feat.size()
 
         burst_feat = self.back_projection1(burst_feat)
         burst_feat = burst_feat.view(1, -1, H, W)
 
-        burst_feat = self.up1(burst_feat)
-        burst_feat = burst_feat.view(-1, f, 2*H, 2*W)
+        burst_feat = self.rec_conv1(burst_feat)
+        burst_feat = burst_feat.view(-1, f, H, W)
 
         burst_feat = self.back_projection2(burst_feat)
-        burst_feat = burst_feat.view(1, -1, 2*H, 2*W)
+        burst_feat = burst_feat.view(1, -1, H, W)
 
-        burst_feat = self.up2(burst_feat)
-        burst_feat = burst_feat.view(-1, f, 4*H, 4*W)
+        burst_feat = self.rec_conv2(burst_feat)
+        burst_feat = burst_feat.view(-1, f, H, W)
 
-        burst_feat = self.up3(burst_feat) 
         burst_feat = self.out_conv(burst_feat)
         
         return burst_feat
-
-
-
-
-
-
