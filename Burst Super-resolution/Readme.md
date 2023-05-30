@@ -17,7 +17,7 @@ python Track_1_evaluation.py
 ## NTIRE 2021 Burst Super-Resolution Challenge - Track 2 Real-world
 ### Training
 - Download [BurstSR train and validation set](https://github.com/goutamgmb/NTIRE21_BURSTSR/blob/master/burstsr_links.md).
-- Download [Pretrained Burstormer on synthetic burst SR dataset](https://mbzuaiac-my.sharepoint.com/:u:/g/personal/akshay_dudhane_mbzuai_ac_ae/EYlxq0X49fRGiFD3kMxnM6IB7VNtwhd3atNr4oc1b1psbA?e=rv8iFx) and place it in './logs/Track_2/saved_model/Burstormer.ckpt'.
+- Download [Pretrained Burstormer on synthetic burst SR dataset](https://mbzuaiac-my.sharepoint.com/:u:/g/personal/akshay_dudhane_mbzuai_ac_ae/EQK37mvF2axEgMYfJ2-IZUgBHkMxvw1qwqLarlBcRnKLNQ?e=GHd9cv) and place it in './logs/Track_2/saved_model/Burstormer.ckpt'.
 ```
 python Burstormer_Track_2_training.py
 ```
