@@ -6,7 +6,7 @@ python Burstormer_Track_1_training.py
 ```
 ### Developement Phase:
 - Download [syn_burst_val](https://data.vision.ee.ethz.ch/bhatg/syn_burst_val.zip) and extract it in root directory.
-- Download [Trained model](https://mbzuaiac-my.sharepoint.com/:u:/g/personal/akshay_dudhane_mbzuai_ac_ae/EYlxq0X49fRGiFD3kMxnM6IB7VNtwhd3atNr4oc1b1psbA?e=pLN14I) and place it in './Trained_models/Synthetic/Burstormer.ckpt'.
+- Download [Trained model](https://mbzuaiac-my.sharepoint.com/:u:/g/personal/akshay_dudhane_mbzuai_ac_ae/ER8mPnjoSIZAnaKA8YyCeE8BA_uQr_73b5qRZx9sh9Rzvw?e=Sc4HFJ) and place it in './Trained_models/Synthetic/Burstormer.ckpt'.
         
 ```
 python Track_1_evaluation.py
