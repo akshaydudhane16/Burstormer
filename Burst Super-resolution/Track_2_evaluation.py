@@ -26,13 +26,24 @@ from pwcnet.pwcnet import PWCNet
 
 import data_processing.camera_pipeline as rgb2raw
 from data_processing.camera_pipeline import *
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    
+set_seed(50)
 ##################################################################################################################
 
 
 parser = argparse.ArgumentParser(description='Real burst super-resolution using Burstormer')
 
 parser.add_argument('--result_dir', default='./Results/Real/', type=str, help='Directory for results')
-parser.add_argument('--weights', default='./Trained_models/Real/Burstormer.pth', type=str, help='Path to pre-trained weights')
+parser.add_argument('--weights', default='./Trained_models/Real/model_best.pth', type=str, help='Path to pre-trained weights')
 
 args = parser.parse_args()
 
@@ -87,6 +98,7 @@ class BurstSR_Test_Network():
             burst = burst.cuda()
             labels = labels.cuda()
             output = labels*0
+            
             with torch.no_grad():
                 output = model(burst)
                 output = output.clamp(0.0, 1.0)
@@ -101,7 +113,7 @@ class BurstSR_Test_Network():
             SSIM.append(SSIM_temp)
             
             print('Evaluation Measures for Burst {:d} ::: PSNR is {:0.3f}, SSIM is {:0.3f} and LPIPS is {:0.3f} \n'.format(i, PSNR_temp, SSIM_temp, LPIPS_temp))
-            
+            """
             burst = burst.cpu()
             output = output.cpu()
             labels = labels.cpu()
@@ -120,6 +132,7 @@ class BurstSR_Test_Network():
             #output = np.concatenate((input_burst, output, labels), axis=1)
             
             cv2.imwrite('{}/{}'.format(result_dir, burst_name[0] +'.png'), output)
+            """
         
         Average_PSNR = sum(PSNR)/len(PSNR)
         Average_SSIM = sum(SSIM)/len(SSIM)
