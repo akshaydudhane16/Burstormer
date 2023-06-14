@@ -20,4 +20,5 @@ transformer-based architecture for burst image restoration and enhancement. In c
 ## Cross dataset testing on HDR+ dataset
 
 We have validated our Burstormer network architecture on HDR+ dataset. Visual results are available [here](https://mbzuaiac-my.sharepoint.com/:f:/g/personal/akshay_dudhane_mbzuai_ac_ae/EvpXnSs8S_ZGrnNl0AlQ3AcBUA97tyAmMGzelAnsPVmVsA?e=2HI9dz)
+Stay tuned for further updates.
 
