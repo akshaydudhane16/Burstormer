@@ -14,7 +14,7 @@ transformer-based architecture for burst image restoration and enhancement. In c
 
 ## Network Architecture
 
-<img src = 'block_diagram.png'> 
+<img src = '../block_diagram.png'> 
 
 
 ## Cross dataset testing on HDR+ dataset
