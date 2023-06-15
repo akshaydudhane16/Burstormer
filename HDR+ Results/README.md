@@ -35,7 +35,7 @@ We have validated our Burstormer network architecture on HDR+ dataset. Visual re
               year={2023}
             }
             
-    @article{hasinoff2016burst,
+    @article{HDR+,
               title={Burst photography for high dynamic range and low-light imaging on mobile cameras},
               author={Hasinoff, Samuel W and Sharlet, Dillon and Geiss, Ryan and Adams, Andrew and Barron, Jonathan T and Kainz, Florian and Chen, Jiawen and Levoy, Marc},
               journal={ACM Transactions on Graphics (ToG)},
