@@ -6,7 +6,6 @@
 
 #### News
 - **Feb 27, 2023:** Paper accepted at CVPR 2023 :tada:
-- **June 14, 2023:** Additional results on HDR+ dataset are available.
 
 <hr />
 
