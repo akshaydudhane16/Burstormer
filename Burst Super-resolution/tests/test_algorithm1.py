@@ -133,13 +133,13 @@ def load_real_burst(burst_path):
 
 
 def test_real_bursts():
-    """Evaluate reference selection on two real BurstSR bursts."""
+    """Evaluate reference selection on real BurstSR evaluation bursts."""
 
     from pathlib import Path
     import matplotlib.pyplot as plt
     from reference_selection.algorithm1 import compute_frame_score
 
-    dataset_path = Path(__file__).resolve().parents[2] / "train_00"
+    dataset_path = Path(__file__).resolve().parents[2] / "evaluation_bursts"
 
     if not dataset_path.exists():
         pytest.skip("BurstSR dataset not available.")
@@ -149,17 +149,19 @@ def test_real_bursts():
         if path.is_dir() and (path / "samsung_00").is_dir()
     )
 
-    assert len(burst_paths) >= 2
+    assert len(burst_paths) > 0
 
     output_dir = Path(__file__).resolve().parents[1] / "results" / "algorithm1"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    for burst_path in burst_paths[:2]:
+    for burst_path in burst_paths:
         burst = load_real_burst(burst_path)
         images = burst.numpy().astype(np.float64)
 
         scores = [compute_frame_score(frame) for frame in images]
         selected = select_reference_frame(burst)
+
+        print(f"Burst: {burst_path.name} | Selected frame: {selected}")
 
         assert isinstance(selected, int)
         assert 0 <= selected < 14
